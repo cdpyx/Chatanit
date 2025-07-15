@@ -7,11 +7,10 @@ version = '1.0'
 
 repositories {
     mavenCentral()
-    maven { url = 'https://repo.velocitypowered.com/snapshots/' }
 }
 
 dependencies {
-    implementation 'com.velocitypowered:velocity-api:3.2.0'
+    implementation 'com.velocitypowered:velocity-api:3.1.0'
     compileOnly 'org.json:json:20231013'
 }
 
