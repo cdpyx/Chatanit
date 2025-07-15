@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
 group = 'com.cdpyx.chatanit'
@@ -13,7 +14,7 @@ repositories {
 
 dependencies {
     implementation 'com.velocitypowered:velocity-api:3.4.0-20250630.142612-79'
-    compileOnly 'org.json:json:20231013'
+    implementation 'org.json:json:20231013'
 }
 
 java {
@@ -29,4 +30,9 @@ jar {
             'Main-Class': 'com.cdpyx.chatanit.ChatFilterPlugin'
         )
     }
-} 
+}
+
+shadowJar {
+    // 可选：防止包冲突
+    relocate 'org.json', 'com.cdpyx.shaded.org.json'
+}
