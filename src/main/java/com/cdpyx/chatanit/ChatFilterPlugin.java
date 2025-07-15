@@ -1,7 +1,7 @@
 package com.cdpyx.chatanit;
 
 import com.velocitypowered.api.event.Subscribe;
-import com.velocitypowered.api.event.player.ChatEvent;
+import com.velocitypowered.api.event.player.PlayerChatEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.google.inject.Inject;
@@ -56,20 +56,20 @@ public class ChatFilterPlugin {
     }
 
     @Subscribe
-    public void onChat(ChatEvent event) {
-        logger.info("[ChatFilter] ChatEvent triggered: rawMessage='{}', player='{}'", event.message(), event.player().getUsername());
-        String message = event.message();
+    public void onPlayerChat(PlayerChatEvent event) {
+        logger.info("[ChatFilter] PlayerChatEvent triggered: rawMessage='{}', player='{}'", event.getMessage(), event.getPlayer().getUsername());
+        String message = event.getMessage();
         String filtered = filterMessage(message);
-        String ip = getPlayerIp(event.player());
+        String ip = getPlayerIp(event.getPlayer());
         if (ip == null) {
-            logger.warn("[ChatFilter] IP 获取失败: player={}", event.player().getUsername());
-            event.setResult(ChatEvent.ChatResult.denied(Component.text("[IP属地：未知]" + filtered)));
+            logger.warn("[ChatFilter] IP 获取失败: player={}", event.getPlayer().getUsername());
+            event.setMessage(Component.text("[IP属地：未知]" + filtered));
             return;
         }
         String city = ipCityCache.get(ip);
         if (city != null) {
             logger.info("[ChatFilter] IP属地缓存命中: {} -> {}", ip, city);
-            event.setResult(ChatEvent.ChatResult.allowed(Component.text("[IP属地：" + city + "]" + filtered)));
+            event.setMessage(Component.text("[IP属地：" + city + "]" + filtered));
         } else {
             logger.info("[ChatFilter] 查询IP属地: {}", ip);
             CompletableFuture.runAsync(() -> {
@@ -79,10 +79,10 @@ public class ChatFilterPlugin {
                 String msg = "[IP属地：" + cityName + "]" + filtered;
                 server.getScheduler().buildTask(this, () -> {
                     logger.info("[ChatFilter] IP属地异步回写: {} -> {}", ip, cityName);
-                    event.setResult(ChatEvent.ChatResult.allowed(Component.text(msg)));
+                    event.setMessage(Component.text(msg));
                 }).schedule();
             });
-            event.setResult(ChatEvent.ChatResult.allowed(Component.text("[IP属地：查询中]" + filtered)));
+            event.setMessage(Component.text("[IP属地：查询中]" + filtered));
         }
     }
 
