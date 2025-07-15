@@ -8,12 +8,14 @@ version = '1.0'
 repositories {
     mavenCentral()
     maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url = 'https://repo.velocitypowered.com/snapshots/' }
 }
 
 dependencies {
-    implementation 'com.velocitypowered:velocity-api:3.4.0'
+    implementation 'com.velocitypowered:velocity-api:3.4.0-20250630.142612-79'
     compileOnly 'org.json:json:20231013'
 }
+
 
 java {
     toolchain {
