@@ -1,7 +1,7 @@
 package com.cdpyx.chatanit;
 
 import com.velocitypowered.api.event.Subscribe;
-import com.velocitypowered.api.event.player.PlayerChatEvent;
+import com.velocitypowered.api.event.player.ChatEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.google.inject.Inject;
@@ -12,16 +12,19 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.text.Component;
+import org.slf4j.Logger;
 
 @Plugin(id = "chatfilter", name = "ChatFilter", version = "1.0", authors = {"cdpyx"})
 public class ChatFilterPlugin {
     private final ProxyServer server;
     private Set<String> prohibitedWords = Set.of();
     private final Map<String, String> ipCityCache = new ConcurrentHashMap<>();
+    private final Logger logger;
 
     @Inject
-    public ChatFilterPlugin(ProxyServer server) {
+    public ChatFilterPlugin(ProxyServer server, Logger logger) {
         this.server = server;
+        this.logger = logger;
         fetchProhibitedWords();
     }
 
@@ -53,32 +56,33 @@ public class ChatFilterPlugin {
     }
 
     @Subscribe
-    public void onPlayerChat(PlayerChatEvent event) {
-        Player player = event.getPlayer();
-        String message = event.getMessage();
+    public void onChat(ChatEvent event) {
+        logger.info("[ChatFilter] ChatEvent triggered: rawMessage='{}', player='{}'", event.message(), event.player().getUsername());
+        String message = event.message();
         String filtered = filterMessage(message);
-        String ip = getPlayerIp(player);
+        String ip = getPlayerIp(event.player());
         if (ip == null) {
-            event.setResult(PlayerChatEvent.ChatResult.message("[IP属地：未知]" + filtered));
+            logger.warn("[ChatFilter] IP 获取失败: player={}", event.player().getUsername());
+            event.setResult(ChatEvent.ChatResult.denied(Component.text("[IP属地：未知]" + filtered)));
             return;
         }
         String city = ipCityCache.get(ip);
         if (city != null) {
-            event.setResult(PlayerChatEvent.ChatResult.message("[IP属地：" + city + "]" + filtered));
+            logger.info("[ChatFilter] IP属地缓存命中: {} -> {}", ip, city);
+            event.setResult(ChatEvent.ChatResult.allowed(Component.text("[IP属地：" + city + "]" + filtered)));
         } else {
-            // 异步查询IP属地
+            logger.info("[ChatFilter] 查询IP属地: {}", ip);
             CompletableFuture.runAsync(() -> {
                 String cityName = fetchCityByIp(ip);
                 if (cityName == null || cityName.isEmpty()) cityName = "未知";
                 ipCityCache.put(ip, cityName);
                 String msg = "[IP属地：" + cityName + "]" + filtered;
-                // 主线程设置聊天内容
                 server.getScheduler().buildTask(this, () -> {
-                    event.setResult(PlayerChatEvent.ChatResult.message(msg));
+                    logger.info("[ChatFilter] IP属地异步回写: {} -> {}", ip, cityName);
+                    event.setResult(ChatEvent.ChatResult.allowed(Component.text(msg)));
                 }).schedule();
             });
-            // 先返回未知
-            event.setResult(PlayerChatEvent.ChatResult.message("[IP属地：查询中]" + filtered));
+            event.setResult(ChatEvent.ChatResult.allowed(Component.text("[IP属地：查询中]" + filtered)));
         }
     }
 
@@ -94,8 +98,10 @@ public class ChatFilterPlugin {
     private String getPlayerIp(Player player) {
         try {
             InetSocketAddress addr = (InetSocketAddress) player.getRemoteAddress();
+            logger.info("[ChatFilter] 获取IP: player={}, ip={}", player.getUsername(), addr.getAddress().getHostAddress());
             return addr.getAddress().getHostAddress();
         } catch (Exception e) {
+            logger.error("[ChatFilter] 获取IP异常: {}", e.getMessage());
             return null;
         }
     }
