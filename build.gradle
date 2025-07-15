@@ -7,7 +7,7 @@ version = '1.0'
 
 repositories {
     mavenCentral()
-    maven { url = 'https://papermc.io/repo/repository/maven-public/' }
+    maven { url = 'https://repo.velocitypowered.com/snapshots/' }
 }
 
 dependencies {
