@@ -134,7 +134,9 @@ public class ChatFilterPlugin {
                     .GET()
                     .build();
             var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            var json = new org.json.JSONObject(response.body());
+            var jsonStr = response.body();
+            logger.info("[ChatFilter] IP API原始返回: {}", jsonStr); // 新增日志
+            var json = new org.json.JSONObject(jsonStr);
             if (json.has("data")) {
                 var data = json.getJSONObject("data");
                 return data.optString("city", "");
