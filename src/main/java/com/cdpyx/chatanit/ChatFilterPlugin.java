@@ -61,33 +61,67 @@ public class ChatFilterPlugin {
     public void onPlayerChat(PlayerChatEvent event) {
         logger.info("[ChatFilter] PlayerChatEvent triggered: rawMessage='{}', player='{}'", event.getMessage(), event.getPlayer().getUsername());
         String message = event.getMessage();
-        String filtered = filterMessage(message);
-        String ip = getPlayerIp(event.getPlayer());
+        Player player = event.getPlayer();
+        String ip = getPlayerIp(player);
         if (ip == null) {
-            logger.warn("[ChatFilter] IP 获取失败: player={}", event.getPlayer().getUsername());
-            event.setResult(PlayerChatEvent.ChatResult.message("[IP属地：未知]" + filtered));
+            logger.warn("[ChatFilter] IP 获取失败: player={}", player.getUsername());
+            event.setResult(PlayerChatEvent.ChatResult.message("[IP属地：未知]" + message));
             return;
         }
         String city = ipCityCache.get(ip);
+        String ipLabel;
         if (city != null) {
             logger.info("[ChatFilter] IP属地缓存命中: {} -> {}", ip, city);
-            event.setResult(PlayerChatEvent.ChatResult.message("[IP属地：" + city + "]" + filtered));
+            ipLabel = "[IP属地：" + city + "]";
         } else {
             logger.info("[ChatFilter] 查询IP属地: {}", ip);
+            ipLabel = "[IP属地：查询中]";
             CompletableFuture.runAsync(() -> {
                 String cityName = fetchCityByIp(ip);
                 if (cityName == null || cityName.isEmpty()) cityName = "未知";
                 ipCityCache.put(ip, cityName);
-                String msg = "[IP属地：" + cityName + "]" + filtered;
                 final String ipFinal = ip;
                 final String cityNameFinal = cityName;
                 server.getScheduler().buildTask(this, () -> {
                     logger.info("[ChatFilter] IP属地异步回写: {} -> {}", ipFinal, cityNameFinal);
-                    event.setResult(PlayerChatEvent.ChatResult.message(msg));
                 }).schedule();
             });
-            event.setResult(PlayerChatEvent.ChatResult.message("[IP属地：查询中]" + filtered));
         }
+        // 敏感词检测并替换为API返回text
+        CompletableFuture.runAsync(() -> {
+            try {
+                String url = "https://uapis.cn/api/prohibited?text=" + java.net.URLEncoder.encode(message, java.nio.charset.StandardCharsets.UTF_8);
+                var client = java.net.http.HttpClient.newHttpClient();
+                var request = java.net.http.HttpRequest.newBuilder()
+                        .uri(new java.net.URI(url))
+                        .GET()
+                        .build();
+                var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                String jsonStr = response.body();
+                logger.info("[ChatFilter] 敏感词API原始返回: {}", jsonStr);
+                var json = new org.json.JSONObject(jsonStr);
+                String newMsg = message;
+                if (json.has("text")) {
+                    Object textObj = json.get("text");
+                    if (textObj instanceof String) {
+                        newMsg = (String) textObj;
+                    } else if (textObj instanceof org.json.JSONArray arr && arr.length() > 0) {
+                        // 如果API返回数组，拼接为字符串
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < arr.length(); i++) {
+                            sb.append(arr.getString(i));
+                        }
+                        newMsg = sb.toString();
+                    }
+                }
+                final String finalMsg = ipLabel + newMsg;
+                server.getScheduler().buildTask(this, () -> {
+                    event.setResult(PlayerChatEvent.ChatResult.message(finalMsg));
+                }).schedule();
+            } catch (Exception e) {
+                logger.error("[ChatFilter] 敏感词API调用异常: {}", e.getMessage());
+            }
+        });
     }
 
     @Subscribe
@@ -135,11 +169,16 @@ public class ChatFilterPlugin {
                     .build();
             var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
             var jsonStr = response.body();
-            logger.info("[ChatFilter] IP API原始返回: {}", jsonStr); // 新增日志
+            logger.info("[ChatFilter] IP API原始返回: {}", jsonStr);
             var json = new org.json.JSONObject(jsonStr);
             if (json.has("data")) {
                 var data = json.getJSONObject("data");
-                return data.optString("city", "");
+                String city = data.optString("city", "");
+                if (city != null && !city.isEmpty()) {
+                    return city;
+                } else {
+                    return data.optString("pos", "");
+                }
             }
             return "";
         } catch (Exception e) {
