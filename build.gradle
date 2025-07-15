@@ -16,10 +16,9 @@ dependencies {
     compileOnly 'org.json:json:20231013'
 }
 
-
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
