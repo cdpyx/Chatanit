@@ -63,13 +63,13 @@ public class ChatFilterPlugin {
         String ip = getPlayerIp(event.getPlayer());
         if (ip == null) {
             logger.warn("[ChatFilter] IP 获取失败: player={}", event.getPlayer().getUsername());
-            event.setMessage(Component.text("[IP属地：未知]" + filtered));
+            event.setResult(PlayerChatEvent.ChatResult.message(Component.text("[IP属地：未知]" + filtered)));
             return;
         }
         String city = ipCityCache.get(ip);
         if (city != null) {
             logger.info("[ChatFilter] IP属地缓存命中: {} -> {}", ip, city);
-            event.setMessage(Component.text("[IP属地：" + city + "]" + filtered));
+            event.setResult(PlayerChatEvent.ChatResult.message(Component.text("[IP属地：" + city + "]" + filtered)));
         } else {
             logger.info("[ChatFilter] 查询IP属地: {}", ip);
             CompletableFuture.runAsync(() -> {
@@ -79,10 +79,10 @@ public class ChatFilterPlugin {
                 String msg = "[IP属地：" + cityName + "]" + filtered;
                 server.getScheduler().buildTask(this, () -> {
                     logger.info("[ChatFilter] IP属地异步回写: {} -> {}", ip, cityName);
-                    event.setMessage(Component.text(msg));
+                    event.setResult(PlayerChatEvent.ChatResult.message(Component.text(msg)));
                 }).schedule();
             });
-            event.setMessage(Component.text("[IP属地：查询中]" + filtered));
+            event.setResult(PlayerChatEvent.ChatResult.message(Component.text("[IP属地：查询中]" + filtered)));
         }
     }
 
