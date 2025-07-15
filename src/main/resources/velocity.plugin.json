@@ -1,0 +1,8 @@
+{
+  "id": "chatfilter",
+  "name": "ChatFilter",
+  "version": "1.0",
+  "main": "com.cdpyx.chatanit.ChatFilterPlugin",
+  "authors": ["cdpyx"],
+  "description": "Velocity 聊天敏感词过滤插件，自动拉取并屏蔽敏感词。"
+} 
