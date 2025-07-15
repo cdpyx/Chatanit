@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
+import com.velocitypowered.api.event.player.PlayerLoginEvent;
 
 @Plugin(id = "chatfilter", name = "ChatFilter", version = "1.0", authors = {"cdpyx"})
 public class ChatFilterPlugin {
@@ -38,7 +39,8 @@ public class ChatFilterPlugin {
                         .build();
                 var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
                 var json = new org.json.JSONObject(response.body());
-                var arr = json.getJSONArray("data");
+                // 取 text 字段
+                var arr = json.getJSONArray("text");
                 Set<String> words = new java.util.HashSet<>();
                 for (int i = 0; i < arr.length(); i++) {
                     words.add(arr.getString(i));
@@ -88,6 +90,20 @@ public class ChatFilterPlugin {
         }
     }
 
+    @Subscribe
+    public void onPlayerLogin(PlayerLoginEvent event) {
+        Player player = event.getPlayer();
+        String ip = getPlayerIp(player);
+        if (ip != null && !ipCityCache.containsKey(ip)) {
+            CompletableFuture.runAsync(() -> {
+                String cityName = fetchCityByIp(ip);
+                if (cityName == null || cityName.isEmpty()) cityName = "未知";
+                ipCityCache.put(ip, cityName);
+                logger.info("[ChatFilter] 登录时预查IP属地: {} -> {}", ip, cityName);
+            });
+        }
+    }
+
     private String filterMessage(String message) {
         String result = message;
         for (String word : prohibitedWords) {
@@ -111,13 +127,18 @@ public class ChatFilterPlugin {
     private String fetchCityByIp(String ip) {
         try {
             var client = java.net.http.HttpClient.newHttpClient();
+            var url = "https://api.xiaotuo.net/api/ip/?apikey=9d74c110-a832-4a7f-9c4a-e58c32bdfdcaeb5ad6f3&ip=" + ip;
             var request = java.net.http.HttpRequest.newBuilder()
-                    .uri(new java.net.URI("http://ip-api.com/json/" + ip + "?lang=zh-CN"))
+                    .uri(new java.net.URI(url))
                     .GET()
                     .build();
             var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
             var json = new org.json.JSONObject(response.body());
-            return json.optString("city", "");
+            if (json.has("data")) {
+                var data = json.getJSONObject("data");
+                return data.optString("city", "");
+            }
+            return "";
         } catch (Exception e) {
             return null;
         }
