@@ -11,6 +11,7 @@ import com.velocitypowered.api.proxy.Player;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import net.kyori.adventure.text.Component;
 
 @Plugin(id = "chatfilter", name = "ChatFilter", version = "1.0", authors = {"cdpyx"})
 public class ChatFilterPlugin {
@@ -41,11 +42,11 @@ public class ChatFilterPlugin {
                 }
                 this.prohibitedWords = words;
                 server.getConsoleCommandSource().sendMessage(
-                    com.velocitypowered.api.text.TextComponent.of("敏感词列表已加载，共" + words.size() + "个。")
+                    Component.text("敏感词列表已加载，共" + words.size() + "个。")
                 );
             } catch (Exception e) {
                 server.getConsoleCommandSource().sendMessage(
-                    com.velocitypowered.api.text.TextComponent.of("敏感词加载失败: " + e.getMessage())
+                    Component.text("敏感词加载失败: " + e.getMessage())
                 );
             }
         });
