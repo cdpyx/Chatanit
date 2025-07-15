@@ -77,8 +77,10 @@ public class ChatFilterPlugin {
                 if (cityName == null || cityName.isEmpty()) cityName = "未知";
                 ipCityCache.put(ip, cityName);
                 String msg = "[IP属地：" + cityName + "]" + filtered;
+                final String ipFinal = ip;
+                final String cityNameFinal = cityName;
                 server.getScheduler().buildTask(this, () -> {
-                    logger.info("[ChatFilter] IP属地异步回写: {} -> {}", ip, cityName);
+                    logger.info("[ChatFilter] IP属地异步回写: {} -> {}", ipFinal, cityNameFinal);
                     event.setResult(PlayerChatEvent.ChatResult.message(msg));
                 }).schedule();
             });
