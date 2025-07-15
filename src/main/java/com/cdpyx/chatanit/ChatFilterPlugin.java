@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
-import com.velocitypowered.api.event.player.PlayerLoginEvent;
+import com.velocitypowered.api.event.connection.LoginEvent;
 
 @Plugin(id = "chatfilter", name = "ChatFilter", version = "1.0", authors = {"cdpyx"})
 public class ChatFilterPlugin {
@@ -91,8 +91,9 @@ public class ChatFilterPlugin {
     }
 
     @Subscribe
-    public void onPlayerLogin(PlayerLoginEvent event) {
-        Player player = event.getPlayer();
+    public void onLogin(LoginEvent event) {
+        Player player = server.getPlayer(event.getPlayer().getUniqueId()).orElse(null);
+        if (player == null) return;
         String ip = getPlayerIp(player);
         if (ip != null && !ipCityCache.containsKey(ip)) {
             CompletableFuture.runAsync(() -> {
