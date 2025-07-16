@@ -19,14 +19,15 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
       - name: Install Gradle
         uses: gradle/gradle-build-action@v2
         with:
           version: 8.6
 
-      - name: Build with Gradle (shadowJar)
+      - name: Build plugin using Gradle CLI
         run: |
-          gradlew shadowJar
+          gradle --no-daemon shadowJar
 
       - name: Upload fat jar artifact
         uses: actions/upload-artifact@v4
