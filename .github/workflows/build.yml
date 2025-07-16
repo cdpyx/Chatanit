@@ -11,41 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up JDK 17
-        id: setup-java
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: 17
+    - name: Set up JDK 17
+      id: setup-java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: 17
 
-      - name: Print Java version
-        run: java -version
-      - name: Install Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          version: 8.6
+    - name: Print Java version
+      run: java -version
 
-      - name: Gradle wrapper
-        run: gradle wrapper
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+    - name: Clean build
+      run: ./gradlew clean --no-daemon
+      env:
+        JAVA_HOME: ${{ steps.setup-java.outputs.path }}
 
-      - name: Clean build
-        run: ./gradlew clean --no-daemon
-        env:
-          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+    - name: Build with Gradle (shadowJar)
+      run: ./gradlew shadowJar --no-daemon
+      env:
+        JAVA_HOME: ${{ steps.setup-java.outputs.path }}
 
-      - name: Build with Gradle (shadowJar)
-        run: ./gradlew shadowJar --no-daemon
-        env:
-          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
-
-      - name: Upload fat jar artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: velocity-plugin-fat-jar
-          path: build/libs/*-all.jar
+    - name: Upload fat jar artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: velocity-plugin-fat-jar
+        path: build/libs/*-all.jar
