@@ -13,3 +13,4 @@ IP属地api为*xiaotuo*提供，脏话屏蔽由*Uapi提供*
 
  
 **更新日志**: https://github.com/cdpyx/Chatanit/commits/release
+[modritrh](https://modrinth.com/plugin/anit-chat/settings)
