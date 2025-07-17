@@ -1,4 +1,5 @@
-#Chat anit 一个自动屏蔽《Minecraft》中文脏话，和增加IP属地的开源项目。
+#Chat anit 一个自动屏蔽《Minecraft》中文脏话，和增加IP属地的开源项目。  
+
 本插件需要装在Velocity上。前置为SignedVelocity-Proxy需要在velocity和所以1.19.1+的子服上增加
 IP属地api为*xiaotuo*提供，脏话屏蔽由*Uapi提供*
 使用方法
