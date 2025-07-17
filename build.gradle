@@ -17,22 +17,7 @@ dependencies {
     implementation 'org.json:json:20231013'
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
-jar {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    manifest {
-        attributes(
-            'Main-Class': 'com.cdpyx.chatanit.ChatFilterPlugin'
-        )
-    }
-}
 
 shadowJar {
-    // 可选：防止包冲突
-    relocate 'org.json', 'com.cdpyx.shaded.org.json'
+    // 保持默认配置，不做 relocate
 }
