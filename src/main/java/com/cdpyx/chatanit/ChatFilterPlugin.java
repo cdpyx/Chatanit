@@ -1,5 +1,9 @@
 package com.cdpyx.chatanit;
-
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
+import org.json.JSONObject;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
 import com.velocitypowered.api.plugin.Plugin;
@@ -146,7 +150,7 @@ public class ChatFilterPlugin {
     private String fetchCityByIp(String ip) {
         try {
             var client = java.net.http.HttpClient.newHttpClient();
-            var url = "https://api.xiaotuo.net/api/ip/?apikey=9d74c110-a832-4a7f-9c4a-e58c32bdfdcaeb5ad6f3&ip=" + ip;
+            var url = "http://ip-api.com/json/" + ip+"?lang=zh-CN";
             var request = java.net.http.HttpRequest.newBuilder()
                     .uri(new java.net.URI(url))
                     .GET()
@@ -156,12 +160,12 @@ public class ChatFilterPlugin {
             logger.info("[ChatFilter] IP API原始返回: {}", jsonStr);
             var json = new org.json.JSONObject(jsonStr);
             if (json.has("data")) {
-                var data = json.getJSONObject("data");
-                String city = data.optString("city", "");
+                
+                String city = json.optString("city", "");
                 if (city != null && !city.isEmpty()) {
                     return city;
                 } else {
-                    return data.optString("pos", "");
+                    return json.optString("isp", "");
                 }
             }
             return "";
