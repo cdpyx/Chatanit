@@ -63,24 +63,20 @@ public class ChatFilterPlugin {
 
     @Subscribe
     public void onPlayerChat(PlayerChatEvent event) {
-        logger.info("[ChatFilter] PlayerChatEvent triggered: rawMessage='{}', player='{}'", event.getMessage(), event.getPlayer().getUsername());
         String message = event.getMessage();
         Player player = event.getPlayer();
         String ip = getPlayerIp(player);
+        // 1. IP属地同步获取
         String city = "未知";
-        String ipLabel;
         if (ip != null && ("127.0.0.1".equals(ip) || "::1".equals(ip))) {
             city = "本地";
-            ipLabel = "[IP属地：本地]";
         } else if (ip != null) {
-            String cityName = fetchCityByIp(ip); // 同步方法
-            if (cityName != null && !cityName.isEmpty()) {
-                city = cityName;
-            }
-            ipLabel = "[IP属地：" + city + "]";
-        } else {
-            ipLabel = "[IP属地：未知]";
+            city = fetchCityByIp(ip); // 必须是同步方法
+            if (city == null || city.isEmpty()) city = "未知";
         }
+        String ipLabel = "[IP属地：" + city + "]";
+        // 2. 敏感词同步检测
+        String filteredMsg = message;
         try {
             String url = "https://uapis.cn/api/prohibited?text=" + java.net.URLEncoder.encode(message, java.nio.charset.StandardCharsets.UTF_8);
             var client = java.net.http.HttpClient.newHttpClient();
@@ -92,24 +88,23 @@ public class ChatFilterPlugin {
             String jsonStr = response.body();
             logger.info("[ChatFilter] 敏感词API原始返回: {}", jsonStr);
             var json = new org.json.JSONObject(jsonStr);
-            String newMsg = message;
             if (json.has("text")) {
                 Object textObj = json.get("text");
                 if (textObj instanceof String) {
-                    newMsg = (String) textObj;
+                    filteredMsg = (String) textObj;
                 } else if (textObj instanceof org.json.JSONArray arr && arr.length() > 0) {
                     StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < arr.length(); i++) {
                         sb.append(arr.getString(i));
                     }
-                    newMsg = sb.toString();
+                    filteredMsg = sb.toString();
                 }
             }
-            event.setResult(PlayerChatEvent.ChatResult.message(ipLabel + newMsg));
         } catch (Exception e) {
             logger.error("[ChatFilter] 敏感词API调用异常: {}", e.getMessage());
-            event.setResult(PlayerChatEvent.ChatResult.message(ipLabel + message));
         }
+        // 3. 立即 setResult
+        event.setResult(PlayerChatEvent.ChatResult.message(ipLabel + filteredMsg));
     }
 
     @Subscribe
